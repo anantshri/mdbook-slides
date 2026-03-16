@@ -1,0 +1,11 @@
+[book]
+title = "Test Book"
+authors = ["Test"]
+
+[preprocessor.slides]
+command = "cargo run --manifest-path ../Cargo.toml --"
+
+[output]
+
+[output.html]
+additional-css = ["src/css/slides.css", "src/css/slides-print.css"]

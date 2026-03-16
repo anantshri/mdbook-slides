@@ -1,0 +1,61 @@
+/*
+ * Minimal slideshow styles for mdbook presentations.
+ */
+
+.slides-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.slide {
+  display: none;
+  position: absolute;
+  inset: 0;
+  padding: 2rem 4rem;
+  overflow: auto;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.slide.active {
+  display: flex;
+}
+
+/* Constrain content width within slides */
+.slide > * {
+  max-width: 80%;
+  width: 100%;
+}
+
+.slide > h1,
+.slide > h2,
+.slide > h3 {
+  width: auto;
+}
+
+/* Code blocks: left-align and limit width */
+.slide > pre {
+  text-align: left;
+}
+
+/* Lists: left-align */
+.slide > ul,
+.slide > ol {
+  text-align: left;
+}
+
+/* Progress indicator */
+.slides-nav {
+  position: absolute;
+  bottom: 1rem;
+  right: 1.5rem;
+  font-size: 0.85rem;
+  opacity: 0.5;
+  pointer-events: none;
+}

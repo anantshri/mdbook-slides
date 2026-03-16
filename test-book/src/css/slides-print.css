@@ -1,0 +1,45 @@
+/*
+ * Print/PDF styles for presentations inside mdbook.
+ * Slides render as landscape pages; other content stays portrait.
+ */
+
+@media print {
+  /* The mdbook break div before .slides-container creates a blank portrait
+     page because the named page transition also forces a break. Hide it. */
+  div[style*="break-before"] + .slides-container {
+    border-top: 0; /* selector anchor — the real fix is the rule below */
+  }
+
+  /* Cancel the mdbook chapter-break div when it precedes slides */
+  div[style*="break-before"]:has(+ .slides-container) {
+    display: none;
+  }
+
+  .slides-container {
+    page: slide;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .slide {
+    display: block !important;
+    position: relative !important;
+    page-break-inside: avoid;
+    padding: 2em !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .slide + .slide {
+    page-break-before: always;
+  }
+
+  .slides-nav {
+    display: none !important;
+  }
+
+  @page slide {
+    size: landscape;
+    margin: 1cm;
+  }
+}
