@@ -13,7 +13,7 @@ An mdbook preprocessor (`mdbook-slides`) that enables slide presentations within
 The Rust preprocessor handles all markdown-to-slides conversion at build time:
 1. Detects `slides: true` in YAML frontmatter
 2. Splits markdown on `---` separators into individual slides
-3. Strips speaker notes (`Note:` / `Notes:` blocks)
+3. Strips speaker notes (lines after `Note:` or `Notes:` until the next slide separator)
 4. Renders each slide's markdown to HTML via pulldown-cmark
 5. Wraps in a slideshow container with ~30 lines of vanilla JS
 
@@ -22,7 +22,7 @@ The Rust preprocessor handles all markdown-to-slides conversion at build time:
 ```
 Cargo.toml                  # Binary: mdbook-slides
 src/
-  main.rs                   # CLI: stdin/stdout protocol, `supports`, `install` subcommands
+  main.rs                   # CLI: mdbook JSON preprocessor protocol, `supports`, `install` subcommands
   lib.rs                    # Preprocessor trait impl, chapter iteration
   frontmatter.rs            # YAML frontmatter parser (detect slides: true)
   html_template.rs          # Slide splitting, markdown rendering, HTML generation
@@ -38,18 +38,22 @@ test-book/                  # Manual test book (not part of cargo tests)
 ## Build & Test
 
 ```sh
-cargo build                 # Compile
-cargo test                  # Run all unit + integration tests
+cargo build                       # Compile
+cargo test                        # Run all unit + integration tests
+cargo test <name>                 # Run a single test by name substring
+cargo test --test integration     # Just the integration suite
 ```
 
-To manually test with the test book:
+To manually test with the test book (exercises the full preprocessor flow and the `install` subcommand):
 ```sh
-cd test-book && mdbook build    # Requires mdbook installed
-cd test-book && mdbook serve    # Live preview at localhost:3000
+cargo install --path .            # Install locally so `mdbook` finds the preprocessor
+cd test-book && mdbook build      # Requires mdbook installed
+cd test-book && mdbook serve      # Live preview at localhost:3000
 ```
 
 ## Key Design Details
 
+- `main.rs` implements the mdbook preprocessor protocol: reads a `[PreprocessorContext, Book]` JSON array from stdin, writes the modified `Book` JSON to stdout. The `supports <renderer>` subcommand signals renderer compatibility via exit code (0 = supported)
 - Output is pure HTML blocks (starts with `<div>`) so mdbook's markdown renderer passes it through unchanged
 - The `<div>` starts a CommonMark type-6 HTML block — **no blank lines allowed** in the div section or mdbook will break it. Blank lines in rendered slide HTML are replaced with `<!-- -->` comments. The `<script>` block follows after a blank line separator, starting its own type-1 block where blank lines are fine.
 - mdbook's chapter navigation arrows (`.nav-chapters`) are removed on slides pages; their URLs are saved for boundary navigation

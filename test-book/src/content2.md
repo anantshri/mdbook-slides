@@ -1,3 +1,4 @@
+# SECTION 2
 # Regular Content
 
 This is a normal mdbook chapter that follows the presentation.

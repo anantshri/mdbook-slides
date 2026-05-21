@@ -28,7 +28,7 @@ pub struct ParseResult {
 pub fn parse_frontmatter(input: &str) -> Result<ParseResult> {
     if let Some(caps) = FRONTMATTER_RE.captures(input) {
         let yaml_str = &caps[1];
-        let config: FrontmatterConfig = serde_yaml::from_str(yaml_str)?;
+        let config: FrontmatterConfig = serde_yaml_ng::from_str(yaml_str)?;
         let content = input[caps.get(0).unwrap().end()..].to_string();
         Ok(ParseResult { config, content })
     } else {

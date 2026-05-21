@@ -1,5 +1,5 @@
-use mdbook::book::{Book, BookItem, Chapter};
-use mdbook::preprocess::Preprocessor;
+use mdbook_preprocessor::book::{Book, BookItem, Chapter};
+use mdbook_preprocessor::Preprocessor;
 
 #[test]
 fn test_mixed_book_slides_and_normal() {
@@ -55,8 +55,8 @@ fn test_mixed_book_slides_and_normal() {
 fn test_preprocessor_name_and_renderer() {
     let preprocessor = mdbook_slides::SlidesPreprocessor;
     assert_eq!(preprocessor.name(), "slides");
-    assert!(preprocessor.supports_renderer("html"));
-    assert!(!preprocessor.supports_renderer("latex"));
+    assert!(preprocessor.supports_renderer("html").unwrap());
+    assert!(!preprocessor.supports_renderer("latex").unwrap());
 }
 
 #[test]

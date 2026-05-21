@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{Arg, Command};
-use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
+use mdbook_preprocessor::{parse_input, Preprocessor};
 use mdbook_slides::install;
 use mdbook_slides::SlidesPreprocessor;
 use std::io;
@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     match matches.subcommand() {
         Some(("supports", sub_m)) => {
             let renderer = sub_m.get_one::<String>("renderer").unwrap();
-            if preprocessor.supports_renderer(renderer) {
+            if preprocessor.supports_renderer(renderer)? {
                 process::exit(0);
             } else {
                 process::exit(1);
@@ -45,12 +45,12 @@ fn main() -> Result<()> {
         }
         _ => {
             // Standard preprocessor protocol: read from stdin, write to stdout
-            let (ctx, book) = CmdPreprocessor::parse_input(io::stdin())?;
+            let (ctx, book) = parse_input(io::stdin())?;
 
-            if ctx.mdbook_version != mdbook::MDBOOK_VERSION {
+            if ctx.mdbook_version != mdbook_preprocessor::MDBOOK_VERSION {
                 log::warn!(
                     "mdbook version mismatch: expected {}, got {}",
-                    mdbook::MDBOOK_VERSION,
+                    mdbook_preprocessor::MDBOOK_VERSION,
                     ctx.mdbook_version
                 );
             }

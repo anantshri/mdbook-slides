@@ -3,8 +3,8 @@ pub mod html_template;
 pub mod install;
 
 use anyhow::Result;
-use mdbook::book::{Book, BookItem};
-use mdbook::preprocess::{Preprocessor, PreprocessorContext};
+use mdbook_preprocessor::book::{Book, BookItem, Chapter};
+use mdbook_preprocessor::{Preprocessor, PreprocessorContext};
 
 pub struct SlidesPreprocessor;
 
@@ -13,8 +13,8 @@ impl Preprocessor for SlidesPreprocessor {
         "slides"
     }
 
-    fn supports_renderer(&self, renderer: &str) -> bool {
-        renderer == "html"
+    fn supports_renderer(&self, renderer: &str) -> Result<bool> {
+        Ok(renderer == "html")
     }
 
     fn run(&self, _ctx: &PreprocessorContext, mut book: Book) -> Result<Book> {
@@ -30,7 +30,7 @@ impl Preprocessor for SlidesPreprocessor {
     }
 }
 
-fn process_chapter(chapter: &mut mdbook::book::Chapter) -> Result<()> {
+fn process_chapter(chapter: &mut Chapter) -> Result<()> {
     let parsed = frontmatter::parse_frontmatter(&chapter.content)?;
 
     if !parsed.config.slides {
@@ -48,7 +48,6 @@ fn process_chapter(chapter: &mut mdbook::book::Chapter) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mdbook::book::Chapter;
 
     #[test]
     fn test_process_slides_chapter() {
