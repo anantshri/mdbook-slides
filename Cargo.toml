@@ -8,6 +8,15 @@ repository = "https://github.com/anantshri/mdbook-slides"
 keywords = ["mdbook", "slides", "presentation", "preprocessor"]
 categories = ["command-line-utilities", "text-processing"]
 readme = "README.md"
+include = [
+    "src/**/*",
+    "assets/**/*",
+    "tests/**/*",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]
 
 [[bin]]
 name = "mdbook-slides"
