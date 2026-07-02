@@ -110,6 +110,8 @@ No external runtime, no CDN, no framework. The slideshow is pure HTML/CSS/JS emb
 
 Navigation is direction-aware: arriving from the next chapter starts at the **last** slide, so you can seamlessly walk backward through the deck.
 
+The active slide is reflected in the URL as `#slide-N` (1-based), so a deck is **deep-linkable** — copy the URL to share a specific slide, and reloading (or opening a `#slide-N` link) lands on that slide instead of the first.
+
 ### Markdown Features
 
 Standard markdown works inside slides:
@@ -119,12 +121,43 @@ Standard markdown works inside slides:
 - Tables, images, links
 - Speaker notes (lines after `Note:` or `Notes:` are stripped from output)
 
+### Two-Column Layout
+
+For side-by-side content, wrap two `<div>`s in a `<div class="cols">`:
+
+````markdown
+<div class="cols">
+<div>
+
+**Left column**
+
+- bullets, text, code
+
+</div>
+<div>
+
+**Right column**
+
+![diagram](diagram.svg)
+
+</div>
+</div>
+````
+
+Leave a blank line around the inner content so CommonMark still parses it as
+markdown (a raw `<div>` block runs until the next blank line). The default is an
+even split; use `class="cols cols-1-2"` or `class="cols cols-2-1"` to weight one
+side. Columns stack to a single column on narrow screens and are re-asserted
+side-by-side when printing.
+
 ## Print / PDF
 
 The included print CSS ensures presentations render properly when printed or exported to PDF:
 
 - Each slide becomes its own **landscape** page
 - Regular chapters remain **portrait**
+- A slide taller than the page splits across pages instead of being clipped
+- Long URLs, paths, and command lines wrap rather than running off the edge
 - Speaker notes hidden
 - Navigation controls hidden
 - Background colors preserved

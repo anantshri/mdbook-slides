@@ -31,6 +31,29 @@ This slide has speaker notes.
 
 ---
 
+## Two Columns
+
+<div class="cols">
+<div>
+
+**Left column**
+
+- Text and bullets
+- Code and quotes
+
+</div>
+<div>
+
+**Right column**
+
+- Diagrams or images
+- More text
+
+</div>
+</div>
+
+---
+
 ## Thank You!
 
 Questions?

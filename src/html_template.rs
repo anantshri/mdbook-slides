@@ -100,11 +100,21 @@ const SLIDESHOW_JS: &str = r#"document.addEventListener('DOMContentLoaded', func
     current = n;
     slides[current].classList.add('active');
     progress.textContent = (current + 1) + ' / ' + slides.length;
+    // Mirror the active slide into the URL so decks are deep-linkable.
+    // replaceState avoids history spam and the scroll jump a bare hash set
+    // would cause (there is no element with id="slide-N").
+    history.replaceState(null, '', '#slide-' + (current + 1));
   }
 
-  // If navigating backward from the next chapter, start at last slide
+  // Choose the starting slide: an explicit #slide-N in the URL wins (deep
+  // link / reload); otherwise, if navigating backward from the next chapter,
+  // start at the last slide.
   var referrer = document.referrer.replace(/#.*/, '');
-  if (nextUrl && referrer === nextUrl.replace(/#.*/, '')) {
+  var hashMatch = /^#slide-(\d+)$/.exec(location.hash);
+  if (hashMatch) {
+    var idx = Math.min(Math.max(parseInt(hashMatch[1], 10), 1), slides.length) - 1;
+    if (idx !== 0) show(idx);
+  } else if (nextUrl && referrer === nextUrl.replace(/#.*/, '')) {
     show(slides.length - 1);
   }
 
@@ -170,6 +180,19 @@ mod tests {
         assert!(html.contains("1 / 2"));
         assert!(html.contains("<h1>Slide 1</h1>"));
         assert!(html.contains("<h1>Slide 2</h1>"));
+        // The embedded navigation script deep-links the active slide.
+        assert!(html.contains("#slide-"));
+        assert!(html.contains("replaceState"));
+    }
+
+    #[test]
+    fn test_slideshow_js_deeplink() {
+        // Write side: the active slide is mirrored into the URL.
+        assert!(SLIDESHOW_JS.contains("replaceState"));
+        assert!(SLIDESHOW_JS.contains("'#slide-' + (current + 1)"));
+        // Read side: an explicit #slide-N in the URL sets the starting slide.
+        assert!(SLIDESHOW_JS.contains("location.hash"));
+        assert!(SLIDESHOW_JS.contains("#slide-(\\d+)"));
     }
 
     #[test]

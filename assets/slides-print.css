@@ -10,8 +10,16 @@
     border-top: 0; /* selector anchor — the real fix is the rule below */
   }
 
-  /* Cancel the mdbook chapter-break div when it precedes slides */
-  div[style*="break-before"]:has(+ .slides-container) {
+  /* Cancel the mdbook chapter-break div when it precedes slides, and hide the
+     redundant chapter-title <h1> mdbook renders right before the deck (the
+     deck's first slide already carries the title, so it just produced a
+     near-blank title page). Scoped via :has(+ .slides-container) so writeup
+     page titles are untouched. */
+  div[style*="break-before"]:has(+ .slides-container),
+  div[style*="break-before"]:has(+ h1 + .slides-container) {
+    display: none;
+  }
+  h1:has(+ .slides-container) {
     display: none;
   }
 
@@ -24,7 +32,10 @@
   .slide {
     display: block !important;
     position: relative !important;
-    page-break-inside: avoid;
+    /* A too-tall slide must be allowed to flow onto a second page; with
+       `page-break-inside: avoid` Chrome clips the overflow (losing content)
+       rather than splitting it. */
+    page-break-inside: auto;
     padding: 2em !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -32,6 +43,74 @@
 
   .slide + .slide {
     page-break-before: always;
+  }
+
+  /* On paper there is no scrollbar, so the on-screen `overflow: auto` would
+     *clip* anything past the slide box. Make everything visible and shrink /
+     wrap content so it fits the page instead of spilling past the edge. */
+  .slides-container,
+  .slide {
+    overflow: visible !important;
+  }
+
+  /* min-width:0 lets flex/grid children shrink below their intrinsic content
+     size (grid items default to min-width:auto, so a column can't shrink below
+     its longest unbreakable token — the classic two-column blow-out). */
+  .slide * {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100% !important;
+  }
+
+  /* Break long unbreakable tokens (URLs, hashes, file paths, command lines)
+     instead of running them off the right edge. */
+  .slide,
+  .slide p,
+  .slide li,
+  .slide a,
+  .slide td,
+  .slide th,
+  .slide h1,
+  .slide h2,
+  .slide h3 {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Code blocks wrap rather than scroll — no horizontal scrollbar on paper, so
+     an unwrapped block would simply be clipped. */
+  .slide pre,
+  .slide code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    overflow: visible !important;
+  }
+
+  /* In print Chrome's layout viewport is narrow, which can trip the on-screen
+     `@media (max-width: 820px)` rule that collapses `.cols` to one column.
+     Re-assert the columns here (the landscape sheet has ample room). */
+  .slide .cols { grid-template-columns: 1fr 1fr !important; }
+  .slide .cols.cols-1-2 { grid-template-columns: 1fr 2fr !important; }
+  .slide .cols.cols-2-1 { grid-template-columns: 2fr 1fr !important; }
+
+  /* Diagrams and images never exceed the page box. */
+  .slide img,
+  .slide svg {
+    max-width: 100% !important;
+    max-height: 15cm;
+    height: auto;
+  }
+
+  /* Section-divider slides: center the heading in the middle of the page.
+     The rule above forces `.slide { display: block }`, so restore a centered
+     flex column for heading-only slides. */
+  .slide:has(> :is(h1, h2, h3, h4, h5, h6)):not(:has(> :not(h1, h2, h3, h4, h5, h6))) {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
   }
 
   .slides-nav {
