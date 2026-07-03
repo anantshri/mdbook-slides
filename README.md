@@ -41,6 +41,7 @@ Add a markdown file with `slides: true` in the YAML frontmatter. Separate slides
 ````markdown
 ---
 slides: true
+
 ---
 ## Welcome
 
@@ -73,6 +74,24 @@ These are speaker notes — hidden from output.
 
 Questions?
 ````
+
+> **mdBook 0.5 frontmatter caveat.** mdBook 0.5 round-trips chapter markdown
+> through pulldown-cmark before preprocessors run. If the closing `---` of the
+> frontmatter directly follows the last key, CommonMark's setext rule reads
+> `slides: true` + `---` as a heading and consumes the closing marker, so the
+> deck silently renders as ordinary prose. **Put a blank line before the closing
+> `---`:**
+>
+> ```markdown
+> ---
+> slides: true
+>
+> ---
+> ## First slide
+> ```
+>
+> If a deck renders as a normal page, this is almost always the cause —
+> mdbook-slides prints a warning naming the chapter when it detects it.
 
 Reference it from `SUMMARY.md` like any other chapter:
 

@@ -52,6 +52,16 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_frontmatter_blank_line_before_close() {
+        // The mdBook-0.5-safe shape (blank line before the closing `---`) must
+        // still parse: the blank line is part of the YAML block, not a terminator.
+        let input = "---\nslides: true\n\n---\n# Slide 1\n";
+        let result = parse_frontmatter(input).unwrap();
+        assert!(result.config.slides);
+        assert_eq!(result.content, "# Slide 1\n");
+    }
+
+    #[test]
     fn test_no_frontmatter() {
         let input = "# Just markdown\n---\nMore content\n";
         let result = parse_frontmatter(input).unwrap();

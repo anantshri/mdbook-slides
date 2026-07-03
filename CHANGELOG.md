@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a deck is hidden.
 - Code blocks no longer collapse to a single scrolling line inside the slide's
   flex column (`flex-shrink: 0`).
+- A chapter that looks like a slides deck but whose frontmatter wasn't detected
+  now logs a warning naming the chapter (mdBook 0.5 needs a blank line before
+  the closing `---`), instead of silently rendering as prose. Documented the
+  caveat in the README and fixed the bundled examples.
 
 ## [0.2.0] - 2026-05-21
 

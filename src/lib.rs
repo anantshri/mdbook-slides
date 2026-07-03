@@ -34,6 +34,20 @@ fn process_chapter(chapter: &mut Chapter) -> Result<()> {
     let parsed = frontmatter::parse_frontmatter(&chapter.content)?;
 
     if !parsed.config.slides {
+        // mdBook 0.5 round-trips chapter markdown through pulldown-cmark before
+        // preprocessors run. If the frontmatter's closing `---` directly follows
+        // the last key (no blank line), CommonMark's setext rule turns
+        // `slides: true\n---` into a heading and consumes the closing marker, so
+        // the frontmatter never parses and the deck silently renders as prose.
+        // Warn when a chapter looks like it *intended* slides frontmatter.
+        if looks_like_mangled_slides_frontmatter(&chapter.content) {
+            log::warn!(
+                "Chapter '{}' looks like a slides deck but its frontmatter was not \
+                 detected. On mdBook 0.5, add a blank line before the closing `---` \
+                 of the frontmatter block (see the README, \"Frontmatter\").",
+                chapter.name
+            );
+        }
         return Ok(());
     }
 
@@ -43,6 +57,15 @@ fn process_chapter(chapter: &mut Chapter) -> Result<()> {
     chapter.content = html;
 
     Ok(())
+}
+
+/// Heuristic: does this chapter look like it *tried* to declare `slides: true`
+/// frontmatter but had it mangled (e.g. by mdBook's markdown round-trip eating
+/// the closing `---`)? Only the top of the file is inspected so body prose that
+/// merely mentions the phrase does not trip a false warning.
+fn looks_like_mangled_slides_frontmatter(content: &str) -> bool {
+    let head = content.chars().take(200).collect::<String>().to_ascii_lowercase();
+    head.contains("slides: true") || head.contains("slides:true")
 }
 
 #[cfg(test)]
@@ -73,5 +96,18 @@ mod tests {
         process_chapter(&mut chapter).unwrap();
 
         assert_eq!(chapter.content, original);
+    }
+
+    #[test]
+    fn test_mangled_frontmatter_heuristic() {
+        // Setext-mangled frontmatter (closing --- eaten) still carries the phrase.
+        assert!(looks_like_mangled_slides_frontmatter("slides: true\n---\n# Deck"));
+        assert!(looks_like_mangled_slides_frontmatter("## slides: true\n\n# Deck"));
+        // Well-formed frontmatter and ordinary prose do not trip it.
+        assert!(!looks_like_mangled_slides_frontmatter("# Just a chapter\n\nProse."));
+        // The phrase deep in body text (past the inspected head) is ignored.
+        let mut body = "x".repeat(300);
+        body.push_str("slides: true");
+        assert!(!looks_like_mangled_slides_frontmatter(&body));
     }
 }
