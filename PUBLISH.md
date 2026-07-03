@@ -55,8 +55,8 @@ The crate appears on crates.io within a few seconds; docs.rs builds the document
 ## Tag the release
 
 ```sh
-git tag -a v0.2.0 -m "Release 0.2.0"
-git push origin v0.2.0
+git tag -a v0.3.0 -m "Release 0.3.0"
+git push origin v0.3.0
 ```
 
 Use the `vX.Y.Z` form to match the existing `v0.1.1` tag.
@@ -72,13 +72,13 @@ Use the `vX.Y.Z` form to match the existing `v0.1.1` tag.
 If you discover a critical issue after publishing, yank the bad version. Yanking prevents new projects from depending on it but does **not** remove it (existing lockfiles continue to work):
 
 ```sh
-cargo yank --version 0.2.0
+cargo yank --version 0.3.0
 ```
 
 To un-yank:
 
 ```sh
-cargo yank --version 0.2.0 --undo
+cargo yank --version 0.3.0 --undo
 ```
 
 Published versions cannot be deleted or overwritten — only yanked. Always bump to a new version to fix issues.
