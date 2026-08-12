@@ -131,6 +131,30 @@ Navigation is direction-aware: arriving from the next chapter starts at the **la
 
 The active slide is reflected in the URL as `#slide-N` (1-based), so a deck is **deep-linkable** — copy the URL to share a specific slide, and reloading (or opening a `#slide-N` link) lands on that slide instead of the first.
 
+### Table of Contents
+
+Each slide's first heading is listed in mdBook's right-hand **"On This Page"**
+panel, just like the subheadings of a normal chapter. Clicking an entry jumps
+straight to the slide containing that heading (the URL becomes
+`slides.html#heading-slug`, and the slide is revealed even though non-active
+slides are hidden).
+
+A few details:
+
+- Use `##` (h2) or deeper for slide titles you want in the TOC — mdBook's panel
+  lists `h2`–`h6` only, so a slide whose title is a single `#` (h1) won't get an
+  entry.
+- Only each slide's **first** heading becomes a TOC entry; additional headings on
+  the same slide stay on the slide but don't clutter the panel.
+- A slide with no heading simply gets no entry.
+- Identical titles are de-duplicated mdBook-style (`welcome`, `welcome-1`, …).
+
+This works because the preprocessor emits each slide's first heading in mdBook's
+final anchored shape (`<h2 id="slug"><a class="header" href="#slug">…</a></h2>`),
+which mdBook's TOC builder recognizes. Heading ids match mdBook's own
+`id_from_content` slug, so you can also deep-link from elsewhere in the book
+(`[see Features](slides.md#features)`).
+
 ### Markdown Features
 
 Standard markdown works inside slides:
@@ -182,6 +206,16 @@ The included print CSS ensures presentations render properly when printed or exp
 - Background colors preserved
 
 Just use your browser's print function or mdbook's print page (`/print.html`).
+
+> **Firefox note.** Slides are designed for **landscape** pages. Chrome and
+> Edge honor the CSS and print the deck landscape automatically. **Firefox does
+> not reliably honor CSS-driven orientation** — especially the portrait →
+> landscape → portrait switch this book uses — so in Firefox you must
+> **manually select Landscape** in the print dialog (and even then a book that
+> mixes slide decks with regular chapters may not switch orientation
+> per-section). For clean PDF export, prefer **Chrome or Edge**. The print CSS
+> degrades gracefully, so if Firefox falls back to portrait the content still
+> wraps and stays within the page rather than being clipped.
 
 ## Project Structure
 

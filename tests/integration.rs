@@ -105,3 +105,19 @@ let x = 42;
     assert!(html.contains("Final Slide"));
     assert!(html.contains("1 / 3"));
 }
+
+#[test]
+fn test_slides_appear_in_toc_markup() {
+    // Each slide's first heading is emitted in mdBook's final anchored shape so
+    // mdBook's toc.js lists it in the right-hand "On This Page" panel. Slug ids
+    // match mdBook's id_from_content, and identical titles are deduplicated.
+    let content = "---\nslides: true\n---\n## Welcome\n\n---\n\n## Features\n\n---\n\n## Welcome\n";
+    let parsed = mdbook_slides::frontmatter::parse_frontmatter(content).unwrap();
+    let html = mdbook_slides::html_template::render_presentation(&parsed.content);
+
+    // mdBook shape: <h2 id="slug"><a class="header" href="#slug">Text</a></h2>
+    assert!(html.contains(r##"<h2 id="welcome"><a class="header" href="#welcome">Welcome</a></h2>"##));
+    assert!(html.contains(r##"<h2 id="features"><a class="header" href="#features">Features</a></h2>"##));
+    // Duplicate "Welcome" title deduplicated mdBook-style.
+    assert!(html.contains(r##"<h2 id="welcome-1"><a class="header" href="#welcome-1">Welcome</a></h2>"##));
+}

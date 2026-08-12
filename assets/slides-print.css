@@ -27,6 +27,11 @@
     page: slide;
     height: auto !important;
     overflow: visible !important;
+    /* Fill the page width regardless of orientation. Firefox may render the
+       deck in a portrait box when it doesn't honor the named-page landscape
+       switch (see README "Print / PDF"); without this, the on-screen absolute /
+       vh sizing leaves the slide box under-wide. */
+    width: 100% !important;
   }
 
   .slide {
@@ -37,6 +42,12 @@
        rather than splitting it. */
     page-break-inside: auto;
     padding: 2em !important;
+    /* Fill the page width regardless of orientation. The on-screen model sizes
+       the slide via the container's `100vh` height and absolute positioning;
+       in print (especially a Firefox portrait fallback) we want the slide box
+       to span the full page box so content neither overflows nor shrinks. */
+    box-sizing: border-box;
+    width: 100%;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -94,11 +105,12 @@
   .slide .cols.cols-1-2 { grid-template-columns: 1fr 2fr !important; }
   .slide .cols.cols-2-1 { grid-template-columns: 2fr 1fr !important; }
 
-  /* Diagrams and images never exceed the page box. */
+  /* Diagrams and images never exceed the page box. Cap height by viewport so a
+     portrait fallback page (Firefox) isn't dominated by a single image. */
   .slide img,
   .slide svg {
     max-width: 100% !important;
-    max-height: 15cm;
+    max-height: 70vh;
     height: auto;
   }
 
@@ -115,6 +127,13 @@
 
   .slides-nav {
     display: none !important;
+  }
+
+  /* Default page margins for the whole book. The named `slide` page below
+     carries these too; repeating the margin here means portrait chapters (and
+     any Firefox fallback that ignores the named page) still get sane margins. */
+  @page {
+    margin: 1cm;
   }
 
   @page slide {

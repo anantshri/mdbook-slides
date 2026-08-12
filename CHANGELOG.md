@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Slide titles in the "On This Page" TOC.** Each slide's first heading now
+  appears in mdBook's right-hand Table of Contents panel, like a normal
+  chapter's subheadings. Clicking an entry jumps to its slide. Use `##` (h2) or
+  deeper for titles you want listed (mdBook's panel shows h2–h6); heading ids
+  match mdBook's `id_from_content` slug, so `[see X](slides.md#x)` deep-links
+  work too. Identical titles are de-duplicated mdBook-style.
+
+### Fixed
+- **Firefox print/PDF hardening.** Firefox doesn't reliably honor CSS-driven
+  page orientation (the portrait→landscape→portrait switch this book uses), so
+  slide decks printed/exported from Firefox could come out portrait with
+  overflowing content, collapsed columns, and stray blank pages. The print CSS
+  now degrades gracefully — slides fill the page width and wrap within it
+  regardless of orientation — and the README documents that Firefox users must
+  select Landscape manually (Chrome/Edge do it automatically).
+
 ## [0.3.0] - 2026-07-03
 
 ### Added
