@@ -1,5 +1,10 @@
 /*
- * Minimal slideshow styles for mdbook presentations.
+ * Slideshow styles for mdbook presentations.
+ *
+ * Sizing uses rem on the assumption that mdbook's default theme sets
+ * `:root { font-size: 62.5% }` (so 1rem = 10px). Themes that want different
+ * proportions can override the `--slide-*` custom properties below rather than
+ * editing this file.
  */
 
 .slides-container {
@@ -15,21 +20,33 @@
   display: none;
   position: absolute;
   inset: 0;
-  padding: 2rem 4rem;
+  padding: var(--slide-padding, 6.4rem 9.6rem);
+  gap: var(--slide-gap, 1.6rem);
   overflow: auto;
   flex-direction: column;
-  justify-content: center;
+  /* Top-align: the heading sits at the top and content flows beneath it. */
+  justify-content: flex-start;
   align-items: center;
   text-align: center;
+  font-size: var(--slide-body-size, 2.4rem);
+  line-height: 1.45;
 }
 
 .slide.active {
   display: flex;
 }
 
+/* Section-divider slides: when a slide's only content is a heading, center it
+   in the middle of the slide (vertically and horizontally) instead of pinning
+   it to the top. Matches a slide that has a heading child and no non-heading
+   element child. */
+.slide:has(> :is(h1, h2, h3, h4, h5, h6)):not(:has(> :not(h1, h2, h3, h4, h5, h6))) {
+  justify-content: center;
+}
+
 /* Constrain content width within slides */
 .slide > * {
-  max-width: 80%;
+  max-width: var(--slide-content-max-width, 80%);
   width: 100%;
 }
 
@@ -39,9 +56,17 @@
   width: auto;
 }
 
-/* Code blocks: left-align and limit width */
-.slide > pre {
+.slide h1 { font-size: var(--slide-h1-size, 4rem); }
+.slide h2 { font-size: var(--slide-h2-size, 3rem); }
+.slide h3 { font-size: var(--slide-h3-size, 2.4rem); }
+
+/* Code blocks: left-align and keep their natural height. .slide is a column
+   flex container; without flex-shrink:0 the code block (a scroll container,
+   since pre sets overflow-x:auto) is shrunk to a single scrolling line. */
+.slide pre {
   text-align: left;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 /* Lists: left-align */
@@ -50,12 +75,119 @@
   text-align: left;
 }
 
-/* Progress indicator */
-.slides-nav {
+/* Keep diagrams and images inside the slide. */
+.slide img,
+.slide svg {
+  max-height: var(--slide-media-max-h, 60vh);
+}
+
+/* Two-column slide layout — opt-in per slide via a raw-HTML wrapper:
+
+     <div class="cols">
+     <div>
+
+     left column markdown
+
+     </div>
+     <div>
+
+     right column markdown
+
+     </div>
+     </div>
+
+   Leave blank lines around the inner content so CommonMark parses it as
+   markdown (a <div> is a raw HTML block until the next blank line). The
+   default split is even; .cols-1-2 / .cols-2-1 weight one side. Columns stack
+   to a single column on narrow screens. */
+.slide .cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--slide-cols-gap, 3rem);
+  width: 100%;
+  align-items: start;
+  text-align: start;
+}
+.slide .cols.cols-1-2 { grid-template-columns: 1fr 2fr; }
+.slide .cols.cols-2-1 { grid-template-columns: 2fr 1fr; }
+.slide .cols img,
+.slide .cols svg { max-width: 100%; }
+
+/* Corner pills: the progress counter (bottom-right) and the chapter/module
+   label (bottom-left). Both use an explicit color plus a theme-agnostic
+   translucent backing so they stay legible on any mdbook theme — including the
+   dark ones (.coal/.navy/.ayu) where the old inherit-only counter washed out —
+   and over any slide content. z-index keeps them above the click zones (which
+   are pointer-events:none-transparent to them, so clicks still pass through). */
+.slides-nav,
+.slides-chapter {
   position: absolute;
   bottom: 1rem;
-  right: 1.5rem;
-  font-size: 0.85rem;
-  opacity: 0.5;
+  z-index: 3;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--fg);
+  font-size: 1.4rem;
+  line-height: 1.2;
+  opacity: 0.75;
   pointer-events: none;
+}
+
+/* Progress indicator (bottom-right) */
+.slides-nav {
+  right: 1.5rem;
+}
+
+/* Chapter/module label (bottom-left) — orient the viewer even with the sidebar
+   collapsed. Capped and ellipsized so a long name never reaches the counter. */
+.slides-chapter {
+  left: 1.5rem;
+  max-width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Navigation zones: full-height left/right click targets that double as the
+   visual cue (a centered arrow glyph). The zone is the hit area; the arrow is
+   the affordance. They sit above the absolutely-positioned .slide layers so
+   clicks register. Slide content is centered at max-width:80%, so these ~12%
+   edge bands normally fall in the empty margin; content/links in the extreme
+   edge strip are covered by the zone (acceptable tradeoff, narrower on phones). */
+.slides-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: clamp(4rem, 12%, 10rem);
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 4rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.slides-zone:hover,
+.slides-zone:focus-visible {
+  opacity: 0.7;
+}
+.slides-zone.prev { left: 0; justify-content: flex-start; }
+.slides-zone.next { right: 0; justify-content: flex-end; }
+
+@media (max-width: 820px) {
+  .slide { padding: var(--slide-padding-narrow, 4rem 2.4rem); }
+  .slide .cols,
+  .slide .cols.cols-1-2,
+  .slide .cols.cols-2-1 { grid-template-columns: 1fr; }
+  /* Narrower zones so they don't crowd content on small screens. */
+  .slides-zone { width: clamp(3rem, 8%, 5rem); font-size: 3rem; padding: 0 0.6rem; }
 }

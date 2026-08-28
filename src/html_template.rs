@@ -207,8 +207,29 @@ fn prevent_blank_lines(html: &str) -> String {
         .join("\n")
 }
 
-/// Generate the full HTML for a presentation chapter.
-pub fn render_presentation(markdown: &str) -> String {
+/// Escape a plain-text string for safe interpolation into HTML, and collapse
+/// any newlines to spaces so the result stays on one line (the outer
+/// `.slides-container` is a CommonMark type-6 block where a blank line would
+/// terminate it early). Used for the chapter-name label pill.
+fn escape_html_inline(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\n' | '\r' => out.push(' '),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Generate the full HTML for a presentation chapter. `chapter_name` is the
+/// mdBook chapter/module title, rendered as a bottom-left label so the viewer
+/// stays oriented even with the sidebar collapsed.
+pub fn render_presentation(markdown: &str, chapter_name: &str) -> String {
     // Render each slide once; for slides whose first heading is h2–h6, capture
     // that heading so we can inject the mdBook anchor that makes it appear in
     // the right-hand "On This Page" TOC. Slug ids are deduplicated across the
@@ -242,6 +263,19 @@ pub fn render_presentation(markdown: &str) -> String {
         out.push_str(&prevent_blank_lines(slide_html));
         out.push_str("</div>\n");
     }
+    // Navigation zones: full-height left/right click targets that show an arrow
+    // glyph as the visual cue. Single-line each (no blank lines in the type-6
+    // block). Wired to goPrev/goNext by the embedded JS.
+    out.push_str(
+        "<button class=\"slides-zone prev\" aria-label=\"Previous slide\">\u{2039}</button>\n",
+    );
+    out.push_str(
+        "<button class=\"slides-zone next\" aria-label=\"Next slide\">\u{203a}</button>\n",
+    );
+    out.push_str(&format!(
+        "<div class=\"slides-chapter\"><span>{}</span></div>\n",
+        escape_html_inline(chapter_name)
+    ));
     out.push_str(&format!(
         "<div class=\"slides-nav\"><span class=\"slides-progress\">1 / {total}</span></div>\n"
     ));
@@ -331,13 +365,30 @@ const SLIDESHOW_JS: &str = r#"document.addEventListener('DOMContentLoaded', func
     }
   });
 
+  // Shared navigation: advance/retreat within the deck, else fall through to the
+  // saved prev/next chapter URLs at the boundaries. Returns true when it moved
+  // within the deck (so the caller can preventDefault the key/scroll).
+  function goNext() {
+    if (current < slides.length - 1) { show(current + 1); return true; }
+    if (nextUrl) window.location.href = nextUrl;
+    return false;
+  }
+  function goPrev() {
+    if (current > 0) { show(current - 1); return true; }
+    if (prevUrl) window.location.href = prevUrl;
+    return false;
+  }
+
+  var prevBtn = container.querySelector('.slides-zone.prev');
+  var nextBtn = container.querySelector('.slides-zone.next');
+  if (prevBtn) prevBtn.addEventListener('click', function() { goPrev(); });
+  if (nextBtn) nextBtn.addEventListener('click', function() { goNext(); });
+
   document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
-      if (current < slides.length - 1) { show(current + 1); e.preventDefault(); }
-      else if (nextUrl) window.location.href = nextUrl;
+      if (goNext()) e.preventDefault();
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      if (current > 0) { show(current - 1); e.preventDefault(); }
-      else if (prevUrl) window.location.href = prevUrl;
+      if (goPrev()) e.preventDefault();
     }
   });
 });"#;
@@ -386,11 +437,15 @@ mod tests {
 
     #[test]
     fn test_render_presentation_structure() {
-        let html = render_presentation("# Slide 1\n\n---\n\n# Slide 2");
+        let html = render_presentation("# Slide 1\n\n---\n\n# Slide 2", "Intro Deck");
         assert!(html.starts_with("<div"));
         assert!(html.contains("class=\"slide active\""));
         assert!(html.contains("class=\"slide\""));
         assert!(html.contains("1 / 2"));
+        // Nav zones and the chapter-name label are emitted.
+        assert!(html.contains("class=\"slides-zone prev\""));
+        assert!(html.contains("class=\"slides-zone next\""));
+        assert!(html.contains("<div class=\"slides-chapter\"><span>Intro Deck</span></div>"));
         assert!(html.contains("<h1>Slide 1</h1>"));
         assert!(html.contains("<h1>Slide 2</h1>"));
         // The embedded navigation script deep-links the active slide.
@@ -412,6 +467,7 @@ mod tests {
     fn test_render_presentation_no_blank_lines_in_div_block() {
         let html = render_presentation(
             "# Slide 1\n\nParagraph\n\n---\n\n# Slide 2\n\n```\ncode\n\nmore\n```",
+            "Test Chapter",
         );
         // The div block (before the script) must have no blank lines
         let div_block = html.split("\n\n<script>").next().unwrap();
@@ -427,7 +483,8 @@ mod tests {
 
     #[test]
     fn test_speaker_notes_stripped() {
-        let html = render_presentation("Content\n\nNote:\nSecret notes\n\n---\n\n# Slide 2");
+        let html =
+            render_presentation("Content\n\nNote:\nSecret notes\n\n---\n\n# Slide 2", "Test");
         assert!(!html.contains("Secret notes"));
         assert!(html.contains("Content"));
     }
@@ -576,7 +633,7 @@ mod tests {
 
     #[test]
     fn test_render_presentation_anchors_first_heading() {
-        let html = render_presentation("## Welcome\n\n---\n\n## Features");
+        let html = render_presentation("## Welcome\n\n---\n\n## Features", "Test");
         assert!(html.contains(
             r##"<h2 id="welcome"><a class="header" href="#welcome">Welcome</a></h2>"##
         ));
@@ -587,7 +644,7 @@ mod tests {
 
     #[test]
     fn test_render_presentation_no_anchor_for_headingless_slide() {
-        let html = render_presentation("## First\n\n---\n\nJust prose, no heading");
+        let html = render_presentation("## First\n\n---\n\nJust prose, no heading", "Test");
         assert!(html.contains(r#"<h2 id="first">"#));
         // The prose slide has no heading, so it must contribute no anchored <hN id=...>.
         assert!(html.contains("<p>Just prose, no heading</p>"));
@@ -597,7 +654,7 @@ mod tests {
 
     #[test]
     fn test_render_presentation_dedups_identical_heading_text() {
-        let html = render_presentation("## Features\n\n---\n\n## Features");
+        let html = render_presentation("## Features\n\n---\n\n## Features", "Test");
         assert!(html.contains(r#"<h2 id="features">"#));
         assert!(html.contains(r#"<h2 id="features-1">"#));
     }
@@ -606,7 +663,7 @@ mod tests {
     fn test_render_presentation_subheadings_not_anchored() {
         // Only the first heading per slide is anchored; the sub-heading stays bare
         // so it does not leak into the right-hand TOC.
-        let html = render_presentation("## Top\n\n### Sub\n");
+        let html = render_presentation("## Top\n\n### Sub\n", "Test");
         assert!(html.contains(r##"<h2 id="top"><a class="header" href="#top">Top</a></h2>"##));
         assert!(html.contains("<h3>Sub</h3>"));
         assert!(!html.contains(r#"<h3 id="#));
@@ -615,7 +672,7 @@ mod tests {
     #[test]
     fn test_render_presentation_h1_not_anchored() {
         // toc.js only selects h2-h6, so h1 slides stay bare (no dead anchor).
-        let html = render_presentation("# Solo H1\n");
+        let html = render_presentation("# Solo H1\n", "Test");
         assert!(html.contains("<h1>Solo H1</h1>"));
         assert!(!html.contains("class=\"header\""));
     }
@@ -623,7 +680,8 @@ mod tests {
     #[test]
     fn test_render_presentation_anchored_block_has_no_blank_lines() {
         // The no-blank-lines invariant must survive the anchor injection.
-        let html = render_presentation("## Welcome\n\nIntro\n\n---\n\n## Features\n\n```\ncode\n```");
+        let html =
+            render_presentation("## Welcome\n\nIntro\n\n---\n\n## Features\n\n```\ncode\n```", "Test");
         let div_block = html.split("\n\n<script>").next().unwrap();
         assert!(div_block.contains(r#"<h2 id="welcome">"#));
         for (i, line) in div_block.lines().enumerate() {
@@ -634,6 +692,54 @@ mod tests {
                 line
             );
         }
+    }
+
+    #[test]
+    fn test_escape_html_inline() {
+        assert_eq!(
+            escape_html_inline(r#"A & B <c> "d""#),
+            "A &amp; B &lt;c&gt; &quot;d&quot;"
+        );
+        // Newlines collapse to spaces so the type-6 block invariant holds.
+        assert_eq!(escape_html_inline("one\ntwo\r\nthree"), "one two  three");
+    }
+
+    #[test]
+    fn test_render_presentation_escapes_chapter_name() {
+        let html = render_presentation("# Slide", "A & <B>");
+        assert!(html.contains("<div class=\"slides-chapter\"><span>A &amp; &lt;B&gt;</span></div>"));
+        // The raw metacharacters never leak into the label.
+        assert!(!html.contains("<span>A & <B></span>"));
+    }
+
+    #[test]
+    fn test_render_presentation_chapter_name_no_blank_lines() {
+        // A chapter name containing a newline must not break the type-6 div block.
+        let html = render_presentation("# Slide", "Multi\nLine");
+        let div_block = html.split("\n\n<script>").next().unwrap();
+        for (i, line) in div_block.lines().enumerate() {
+            assert!(
+                !line.trim().is_empty(),
+                "Blank line at line {}: {:?}",
+                i + 1,
+                line
+            );
+        }
+        assert!(html.contains("<span>Multi Line</span>"));
+    }
+
+    #[test]
+    fn test_slideshow_js_click_navigation() {
+        // Shared helpers back both keyboard and click navigation.
+        assert!(SLIDESHOW_JS.contains("function goNext()"));
+        assert!(SLIDESHOW_JS.contains("function goPrev()"));
+        // Click listeners are wired to the nav zones.
+        assert!(SLIDESHOW_JS.contains(".slides-zone.prev"));
+        assert!(SLIDESHOW_JS.contains(".slides-zone.next"));
+        assert!(SLIDESHOW_JS.contains("addEventListener('click'"));
+        // Boundary fall-through to chapter URLs is preserved in the helpers.
+        assert!(SLIDESHOW_JS.contains("window.location.href = nextUrl"));
+        assert!(SLIDESHOW_JS.contains("window.location.href = prevUrl"));
     }
 
     #[test]

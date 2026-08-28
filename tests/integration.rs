@@ -27,7 +27,7 @@ fn test_mixed_book_slides_and_normal() {
             let parsed = mdbook_slides::frontmatter::parse_frontmatter(&ch.content).unwrap();
             if parsed.config.slides {
                 ch.content =
-                    mdbook_slides::html_template::render_presentation(&parsed.content);
+                    mdbook_slides::html_template::render_presentation(&parsed.content, &ch.name);
             }
         }
     });
@@ -39,6 +39,12 @@ fn test_mixed_book_slides_and_normal() {
         assert!(slides.content.contains("Slide 1"), "Should preserve slide content");
         assert!(slides.content.contains("Slide 3"), "Should preserve all slides");
         assert!(!slides.content.contains("slides: true"), "Should strip frontmatter");
+        // Navigation zones and the chapter-name orientation label are present.
+        assert!(slides.content.contains("class=\"slides-zone next\""), "Should render nav zones");
+        assert!(
+            slides.content.contains("<div class=\"slides-chapter\"><span>My Slides</span></div>"),
+            "Should render the chapter-name label"
+        );
     } else {
         panic!("First item should be a chapter");
     }
@@ -66,7 +72,7 @@ fn test_slides_with_code_and_notes() {
     let parsed = mdbook_slides::frontmatter::parse_frontmatter(content).unwrap();
     assert!(parsed.config.slides);
 
-    let html = mdbook_slides::html_template::render_presentation(&parsed.content);
+    let html = mdbook_slides::html_template::render_presentation(&parsed.content, "Deck");
 
     assert!(html.contains("fn main()"));
     assert!(!html.contains("Secret notes"));
@@ -98,7 +104,7 @@ let x = 42;
 "#;
 
     let parsed = mdbook_slides::frontmatter::parse_frontmatter(content).unwrap();
-    let html = mdbook_slides::html_template::render_presentation(&parsed.content);
+    let html = mdbook_slides::html_template::render_presentation(&parsed.content, "Deck");
 
     assert!(html.contains("<li>Item one</li>"));
     assert!(html.contains("let x = 42;"));
@@ -113,7 +119,7 @@ fn test_slides_appear_in_toc_markup() {
     // match mdBook's id_from_content, and identical titles are deduplicated.
     let content = "---\nslides: true\n---\n## Welcome\n\n---\n\n## Features\n\n---\n\n## Welcome\n";
     let parsed = mdbook_slides::frontmatter::parse_frontmatter(content).unwrap();
-    let html = mdbook_slides::html_template::render_presentation(&parsed.content);
+    let html = mdbook_slides::html_template::render_presentation(&parsed.content, "Deck");
 
     // mdBook shape: <h2 id="slug"><a class="header" href="#slug">Text</a></h2>
     assert!(html.contains(r##"<h2 id="welcome"><a class="header" href="#welcome">Welcome</a></h2>"##));

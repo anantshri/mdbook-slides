@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **On-slide navigation cues and orientation.** Slides now show full-height
+  left/right click zones with arrow glyphs (`‹` / `›`) — click a side (or use the
+  arrow keys / space, as before) to move between slides, including across chapter
+  boundaries. A bottom-left pill shows the current chapter name so you stay
+  oriented even with the sidebar collapsed. All hidden in print/PDF.
 - **Slide titles in the "On This Page" TOC.** Each slide's first heading now
   appears in mdBook's right-hand Table of Contents panel, like a normal
   chapter's subheadings. Clicking an entry jumps to its slide. Use `##` (h2) or
@@ -16,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   work too. Identical titles are de-duplicated mdBook-style.
 
 ### Fixed
+- **Dark-mode slide counter visibility.** The bottom-right `N / M` counter is now
+  an explicit-color pill on a theme-agnostic translucent backing, so it stays
+  legible on the dark mdBook themes (Coal/Navy/Ayu) where it previously washed
+  out to near-invisible.
 - **Firefox print/PDF hardening.** Firefox doesn't reliably honor CSS-driven
   page orientation (the portrait→landscape→portrait switch this book uses), so
   slide decks printed/exported from Firefox could come out portrait with

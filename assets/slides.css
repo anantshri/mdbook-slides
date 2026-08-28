@@ -113,19 +113,81 @@
 .slide .cols img,
 .slide .cols svg { max-width: 100%; }
 
-/* Progress indicator */
-.slides-nav {
+/* Corner pills: the progress counter (bottom-right) and the chapter/module
+   label (bottom-left). Both use an explicit color plus a theme-agnostic
+   translucent backing so they stay legible on any mdbook theme — including the
+   dark ones (.coal/.navy/.ayu) where the old inherit-only counter washed out —
+   and over any slide content. z-index keeps them above the click zones (which
+   are pointer-events:none-transparent to them, so clicks still pass through). */
+.slides-nav,
+.slides-chapter {
   position: absolute;
   bottom: 1rem;
-  right: 1.5rem;
-  font-size: 0.85rem;
-  opacity: 0.5;
+  z-index: 3;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--fg);
+  font-size: 1.4rem;
+  line-height: 1.2;
+  opacity: 0.75;
   pointer-events: none;
 }
+
+/* Progress indicator (bottom-right) */
+.slides-nav {
+  right: 1.5rem;
+}
+
+/* Chapter/module label (bottom-left) — orient the viewer even with the sidebar
+   collapsed. Capped and ellipsized so a long name never reaches the counter. */
+.slides-chapter {
+  left: 1.5rem;
+  max-width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Navigation zones: full-height left/right click targets that double as the
+   visual cue (a centered arrow glyph). The zone is the hit area; the arrow is
+   the affordance. They sit above the absolutely-positioned .slide layers so
+   clicks register. Slide content is centered at max-width:80%, so these ~12%
+   edge bands normally fall in the empty margin; content/links in the extreme
+   edge strip are covered by the zone (acceptable tradeoff, narrower on phones). */
+.slides-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: clamp(4rem, 12%, 10rem);
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 4rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.slides-zone:hover,
+.slides-zone:focus-visible {
+  opacity: 0.7;
+}
+.slides-zone.prev { left: 0; justify-content: flex-start; }
+.slides-zone.next { right: 0; justify-content: flex-end; }
 
 @media (max-width: 820px) {
   .slide { padding: var(--slide-padding-narrow, 4rem 2.4rem); }
   .slide .cols,
   .slide .cols.cols-1-2,
   .slide .cols.cols-2-1 { grid-template-columns: 1fr; }
+  /* Narrower zones so they don't crowd content on small screens. */
+  .slides-zone { width: clamp(3rem, 8%, 5rem); font-size: 3rem; padding: 0 0.6rem; }
 }

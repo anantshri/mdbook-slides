@@ -125,7 +125,9 @@
     text-align: center;
   }
 
-  .slides-nav {
+  .slides-nav,
+  .slides-chapter,
+  .slides-zone {
     display: none !important;
   }
 

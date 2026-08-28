@@ -53,7 +53,7 @@ fn process_chapter(chapter: &mut Chapter) -> Result<()> {
 
     log::info!("Processing slides chapter: {}", chapter.name);
 
-    let html = html_template::render_presentation(&parsed.content);
+    let html = html_template::render_presentation(&parsed.content, &chapter.name);
     chapter.content = html;
 
     Ok(())
