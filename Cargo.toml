@@ -13,7 +13,7 @@ include = [
     "assets/**/*",
     "tests/**/*",
     "Cargo.toml",
-    "README.md",
+    "/README.md",
     "LICENSE",
     "CHANGELOG.md",
 ]
