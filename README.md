@@ -3,7 +3,7 @@
 An [mdbook](https://rust-lang.github.io/mdBook/) preprocessor that turns markdown files into slide presentations — no JavaScript frameworks, no CDN, no dependencies beyond mdbook itself.
 
 - One markdown file = one sidebar entry = a full-page slideshow
-- Arrow keys navigate slides, then seamlessly continue to the next chapter
+- Arrow keys or edge clicks navigate slides, then seamlessly continue to the next chapter
 - Slides print as landscape pages; regular chapters stay portrait
 - Zero client-side dependencies — everything is self-contained
 
@@ -126,6 +126,13 @@ No external runtime, no CDN, no framework. The slideshow is pure HTML/CSS/JS emb
 | Left / Up | Previous slide |
 | Right on last slide | Navigate to next chapter |
 | Left on first slide | Navigate to previous chapter |
+
+You can also **click (or tap) the left/right edge** of a slide to go back or
+forward — each side shows a faint arrow cue (`‹` / `›`) that brightens on hover,
+and edge clicks cross chapter boundaries just like the arrow keys. A pill in the
+**bottom-left corner shows the current chapter name**, so you stay oriented even
+with mdBook's sidebar collapsed. Both the click cues and the chapter pill are
+hidden in print/PDF.
 
 Navigation is direction-aware: arriving from the next chapter starts at the **last** slide, so you can seamlessly walk backward through the deck.
 
