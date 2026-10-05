@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Sidebar heading highlight now follows the deck.** mdBook's sidebar
+  heading list (the "On This Page" entries nested under the chapter) highlighted
+  the wrong entry and then froze, because mdBook picks the current heading from
+  document scroll position — and a slideshow never scrolls the document, it
+  swaps the active slide. The embedded JS now flags the sidebar entry belonging
+  to the current slide with mdBook's own `.current-header` class (clearing the
+  others), expands it if its group is collapsed, and scrolls it into view, on
+  load and on every slide change (`#slide-N` deep links and TOC clicks
+  included). Slides with no `##`-or-deeper heading simply leave the list
+  unhighlighted.
+
 ## [0.4.0] - 2026-09-01
 
 ### Added
