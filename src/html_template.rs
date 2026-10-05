@@ -306,6 +306,55 @@ const SLIDESHOW_JS: &str = r#"document.addEventListener('DOMContentLoaded', func
   var m = document.querySelector('#content main') || document.querySelector('main');
   if (m) { m.style.padding = '0'; m.style.maxWidth = 'none'; }
 
+  // Keep mdBook's sidebar heading list in sync with the deck.
+  //
+  // mdBook's toc.js marks the "current" heading in the sidebar by measuring
+  // heading positions against a scroll threshold driven by document scroll
+  // events. A slideshow never scrolls the document - it swaps .slide.active -
+  // so that highlight fires at most once (at load, where every hidden slide
+  // reports a zero-size rect) and then never moves, leaving the sidebar
+  // pointing at the wrong entry. Drive it from the active slide instead, using
+  // the same mdBook-sidebar markup toc.js builds (a.header-in-summary plus the
+  // .current-header class mdBook styles with --sidebar-active).
+  function sidebarLinks() {
+    return document.querySelectorAll('.header-in-summary');
+  }
+
+  // The sidebar entry that belongs to slide n, matched by the id of that
+  // slide's first anchored heading (h2-h6, the ones toc.js lists).
+  function sidebarLinkForSlide(n) {
+    var slide = slides[n];
+    if (!slide) return null;
+    var heading = slide.querySelector('h2[id], h3[id], h4[id], h5[id], h6[id]');
+    if (!heading || !heading.id) return null;
+    var want = '#' + heading.id;
+    var links = sidebarLinks();
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].getAttribute('href') === want) return links[i];
+    }
+    return null;
+  }
+
+  function syncSidebar(n) {
+    var links = sidebarLinks();
+    for (var i = 0; i < links.length; i++) {
+      links[i].classList.remove('current-header');
+    }
+    var a = sidebarLinkForSlide(n);
+    if (!a) return; // heading-less slide: leave nothing highlighted
+    a.classList.add('current-header');
+    // Reveal the entry if it sits inside a collapsed group.
+    var p = a.parentElement;
+    while (p) {
+      if (p.tagName === 'LI' && p.classList.contains('header-item')) {
+        p.classList.add('expanded');
+      }
+      p = p.parentElement;
+    }
+    // Keep the highlighted entry visible in the sidebar's own scrollbox.
+    if (a.scrollIntoView) a.scrollIntoView({ block: 'center' });
+  }
+
   function show(n) {
     slides[current].classList.remove('active');
     current = n;
@@ -315,6 +364,7 @@ const SLIDESHOW_JS: &str = r#"document.addEventListener('DOMContentLoaded', func
     // replaceState avoids history spam and the scroll jump a bare hash set
     // would cause (there is no element with id="slide-N").
     history.replaceState(null, '', '#slide-' + (current + 1));
+    syncSidebar(current);
   }
 
   // Choose the starting slide: an explicit #slide-N in the URL wins (deep
@@ -340,6 +390,16 @@ const SLIDESHOW_JS: &str = r#"document.addEventListener('DOMContentLoaded', func
   } else if (nextUrl && referrer === nextUrl.replace(/#.*/, '')) {
     show(slides.length - 1);
   }
+
+  // Highlight the starting slide's sidebar entry. show() already did this for
+  // non-first starts (deep links) and for backward entry; this covers a plain
+  // load at slide 1, where show() is never called, and wins over toc.js's own
+  // load-time guess (which, with no scrollable document, lands on the wrong
+  // entry). mdBook registers its sidebar builder earlier (toc.js loads in
+  // <head>), so the entries exist by the time this runs; the load listener is
+  // a safety net for orderings where the sidebar is built later.
+  syncSidebar(current);
+  window.addEventListener('load', function() { syncSidebar(current); });
 
   // Clicking a right-hand "On This Page" TOC entry changes the URL hash to the
   // heading's slug mid-session; reveal the slide containing that heading. The
@@ -750,5 +810,40 @@ mod tests {
         assert!(SLIDESHOW_JS.contains("Array.prototype.indexOf.call(slides"));
         // Mid-session TOC click: a hashchange listener reveals the slide.
         assert!(SLIDESHOW_JS.contains("addEventListener('hashchange'"));
+    }
+
+    #[test]
+    fn test_slideshow_js_syncs_sidebar_highlight() {
+        // mdBook's own sidebar highlight is scroll-driven and therefore dead in
+        // a deck (the document never scrolls), so the embedded JS drives it:
+        // it flags the sidebar entry for the active slide with mdBook's
+        // `.current-header` class and clears the rest.
+        assert!(SLIDESHOW_JS.contains("function sidebarLinks()"));
+        assert!(SLIDESHOW_JS.contains("function sidebarLinkForSlide(n)"));
+        assert!(SLIDESHOW_JS.contains("function syncSidebar(n)"));
+        assert!(SLIDESHOW_JS.contains(".header-in-summary"));
+        assert!(SLIDESHOW_JS.contains("classList.remove('current-header')"));
+        assert!(SLIDESHOW_JS.contains("classList.add('current-header')"));
+        // Matched by the slide's first anchored heading (h2-h6), the same
+        // headings mdBook lists in the sidebar.
+        assert!(SLIDESHOW_JS.contains("h2[id], h3[id], h4[id], h5[id], h6[id]"));
+        assert!(SLIDESHOW_JS.contains("getAttribute('href') === want"));
+        // Fired on every slide change, once for the starting slide, and again
+        // on window load in case the sidebar is built after this handler.
+        assert!(SLIDESHOW_JS.contains("syncSidebar(current);"));
+        assert!(SLIDESHOW_JS.contains("addEventListener('load'"));
+        // The nested entry is revealed when its group is collapsed.
+        assert!(SLIDESHOW_JS.contains("classList.contains('header-item')"));
+        assert!(SLIDESHOW_JS.contains("scrollIntoView"));
+    }
+
+    #[test]
+    fn test_slideshow_js_sidebar_sync_leaves_no_unhighlightable_state() {
+        // A slide with no h2-h6 heading (e.g. prose-only or h1-titled) yields no
+        // sidebar entry: the helpers must tolerate that and short-circuit
+        // rather than throwing on a missing heading.
+        assert!(SLIDESHOW_JS.contains("if (!slide) return null;"));
+        assert!(SLIDESHOW_JS.contains("if (!heading || !heading.id) return null;"));
+        assert!(SLIDESHOW_JS.contains("if (!a) return;"));
     }
 }
